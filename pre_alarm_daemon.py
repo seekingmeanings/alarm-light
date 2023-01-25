@@ -48,14 +48,17 @@ def kill_daemon():
 
 
 class Remote_Interface:
-    def __init__(self):
+    def __init__(self, address, port):
         last_update = None #time.struct_time
-        
+        ssh_bind = 
 
-    def set_remote_state():
+    def check_connection(self)
         pass
 
-    def get_remote_state():
+    def set_remote_state(self):
+        pass
+
+    def get_remote_state(self):
         return
 
 
