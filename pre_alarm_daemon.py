@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import subprocess
+import subprocess as sp
 import argparse
 import json
 from time import strptime
@@ -10,13 +10,13 @@ sys.path.append('/data/data/com.termux/files/home/lib')
 from local_utils import toast
 
 
-from pprint import pprint
+from pprint import pprint as pp
 
 NID = 56
 WORK_DIR="/data/data/com.termux/files/home/alarm-light"
 
 def check_for_upcoming_alarm():
-    opt = subprocess.Popen("termux-notification-list", stdout=subprocess.PIPE)
+    opt = sp.Popen("termux-notification-list", stdout=sp.PIPE)
     opt.wait()
     
     notifications = json.loads(str().join([str(l.decode('utf-8').replace('\n', '')) \
@@ -33,7 +33,7 @@ def check_for_upcoming_alarm():
 
 
 def notification_switch(): # add last updated as content
-    subprocess.run(["termux-notification", "-i", str(NID),\
+    sp.run(["termux-notification", "-i", str(NID),\
                     "--ongoing", "--button1", "on", "--button1-action",\
                     f"python3 {WORK_DIR}/pre_alarm_daemon.py --on",\
                     "--button2", "off", "--button2-action",\
@@ -43,14 +43,20 @@ def notification_switch(): # add last updated as content
                     "-t", "bed light"], check=True)
 
 def kill_daemon():
-    subprocess.run("termux-notification-remove", str(NID))
+    sp.run("termux-notification-remove", str(NID))
     #add for real daemon
 
 
 class Remote_Interface:
-    def __init__(self, address, port):
+    #make it easier with keys (use shell=True maybe in that case)
+    def __init__(self, address, port, user_name, password):
         last_update = None #time.struct_time
-        ssh_bind = 
+        #NOT SAFE
+        ssh_bind = sp.Popen(["/usr/bin/ssh", f"{user_name}@{address}",\
+                            "-p", str(port)], stderr=sp.PIPE,\
+                            stdin=sp.PIPE, stdout=sp.PIPE)
+
+        
 
     def check_connection(self)
         pass
