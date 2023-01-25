@@ -31,7 +31,7 @@ def check_for_upcoming_alarm():
             toast(f"alarm found: {next_alarm[-1]}")
 
 
-   
+
 def notification_switch(): # add last updated as content
     subprocess.run(["termux-notification", "-i", str(NID),\
                     "--ongoing", "--button1", "on", "--button1-action",\
@@ -39,23 +39,23 @@ def notification_switch(): # add last updated as content
                     "--button2", "off", "--button2-action",\
                     f"python3 {WORK_DIR}/pre_alarm_daemon.py --off",\
                     "--button3", "kill daemon", "--button3-action",
-                    f"termux-notification-remove {NID}",\
+                    f"python3 {WORK_DIR}/pre_alarm_daemon.py -d -k",\
                     "-t", "bed light"], check=True)
 
-def kill_daemon(): #add for real daemon
-    subprocess.run("termux-notification", str(NID),\
-                   ""
- 
+def kill_daemon():
+    subprocess.run("termux-notification-remove", str(NID))
+    #add for real daemon
+
 
 class Remote_Interface:
     def __init__(self):
         last_update = None #time.struct_time
+        
 
-    
     def set_remote_state():
         pass
 
-    def get_remote_state() -> bool:
+    def get_remote_state():
         return
 
 
@@ -86,14 +86,14 @@ if __name__ == "__main__":
     args=parser.parse_args() 
 
 
-
     #make startup check; use groups instead of nid?
 
     if args.daemon:
         if args.kill:
-            
-        notification_switch()
-        check_for_upcoming_alarm()
+            kill_daemon()
+        else:
+            notification_switch()
+            check_for_upcoming_alarm()
 
 
     if args.on - args.off:
