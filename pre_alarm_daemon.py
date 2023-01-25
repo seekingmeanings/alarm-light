@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 
 import subprocess as sp
+import pexpect as px
+
 import argparse
 import json
 from time import strptime
@@ -52,11 +54,9 @@ class Remote_Interface:
     def __init__(self, address, port, user_name, password):
         last_update = None #time.struct_time
         #NOT SAFE
-        ssh_bind = sp.Popen(["/usr/bin/ssh", f"{user_name}@{address}",\
-                            "-p", str(port)], stderr=sp.PIPE,\
-                            stdin=sp.PIPE, stdout=sp.PIPE)
+        ssh_bind = px.spawn([f"/usr/bin/ssh {user_name}@{address} -p {str(port)}")
 
-        
+
 
     def check_connection(self)
         pass
