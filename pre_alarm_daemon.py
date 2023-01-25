@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import subprocess as sp
-import pexpect as px
+from paramiko import client.SHHClient
 
 import argparse
 import json
@@ -44,28 +44,42 @@ def notification_switch(): # add last updated as content
                     f"python3 {WORK_DIR}/pre_alarm_daemon.py -d -k",\
                     "-t", "bed light"], check=True)
 
+
+
+
+    
 def kill_daemon():
     sp.run("termux-notification-remove", str(NID))
+
     #add for real daemon
+    
+    #close the ssh connection
+    
 
-
-class Remote_Interface:
-    #make it easier with keys (use shell=True maybe in that case)
-    def __init__(self, address, port, user_name, password):
+class Remote_Interface: # extends paramiko.client.SSHClient   or just API??
+    def __init__(self, host_name, host_port, host_user_name, host_password):
         last_update = None #time.struct_time
-        #NOT SAFE
-        ssh_bind = px.spawn([f"/usr/bin/ssh {user_name}@{address} -p {str(port)}")
+        
+        def _make_bind(n, p, u, pw):
+            ssh_bind = SSHClient()
+            ssh_bind.load_system_host_keys()
+            try:
+                ssh_bind.connect(hostname=str(n), port=int(p),\
+                                 username=str(u), password=str(pw))
+            except ValueError as e:
+                raise ValueError(f"u stoopid:\n{e}")
+        
+        make_bind(host_name, host_port, host_user_name, host_password)
+        # ssh_bind = px.spawn(f"/usr/bin/ssh {user_name}@{address} -p {str(port)})
 
-
-
-    def check_connection(self)
+    def check_connection(self):
         pass
 
     def set_remote_state(self):
         pass
 
     def get_remote_state(self):
-        return
+        pass
 
 
 
@@ -102,6 +116,7 @@ if __name__ == "__main__":
             kill_daemon()
         else:
             notification_switch()
+            #loop???
             check_for_upcoming_alarm()
 
 
