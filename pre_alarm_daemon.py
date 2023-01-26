@@ -96,6 +96,35 @@ class Remote_Interface: # extends paramiko.client.SSHClient   or just API??
 }
 """
 
+class alarm_daemon:
+    def __init__(self, credentials):
+        remote_interface = Remote_Interface(*credentials)
+
+    @staticmethod
+    def find_notification():
+        with opt as sp.run(["termux-notification-list"], shell=True,\
+                           capture_output=True, timeout=5, text=True):
+
+            notifications = json.loads(str().join([str(l.decode('utf-8')\
+                                                       .replace('\n', ''))\
+                                                   for l in opt.stdout]))
+        nots = list()
+
+        for n in notifications:
+            if n['packageName'] == "com.google.android.deskclock"\
+               and n['title'] == "Upcoming alarm" and int(n['group']) == 1:
+                nots.append(n)
+
+        return [ n if (n['packageName'] == "com.google.android.deskclock"\
+                       and n['title'] == "Upcoming alarm" and int(n['group']) ==1)\
+                 else None
+                 for n in notifications ] #remove all occurencys of None
+
+    def collect_upcoming_alarms(self):
+        next_alarm.append(strptime(n['content'].join(''), '%a %H:%M'))
+        toast(f"alarm found: {next_alarm[-1]}")
+
+
 
 
 if __name__ == "__main__":
