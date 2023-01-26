@@ -12,12 +12,10 @@ sys.path.append('/data/data/com.termux/files/home/lib')
 from local_utils import toast
 
 
-from pprint import pprint as pp
-
 NID = 56
 WORK_DIR="/data/data/com.termux/files/home/alarm-light"
 
-def check_for_upcoming_alarm():
+def check_for_upcoming_alarm(): #old
     opt = sp.Popen("termux-notification-list", stdout=sp.PIPE)
     opt.wait()
     
@@ -48,28 +46,26 @@ def notification_switch(): # add last updated as content
 
 
     
-def kill_daemon():
-    sp.run("termux-notification-remove", str(NID))
-
-    #add for real daemon
+def kill_notification(nid):
+    sp.run("termux-notification-remove", str(nid))
     
     #close the ssh connection
     
 
 class Remote_Interface: # extends paramiko.client.SSHClient   or just API??
     def __init__(self, host_name, host_port, host_user_name, host_password):
-        last_update = None #time.struct_time
+        self.last_update = None #time.struct_time
         
         def _make_bind(n, p, u, pw):
-            ssh_bind = SSHClient()
-            ssh_bind.load_system_host_keys()
+            self.ssh_bind = SSHClient()
+            self.ssh_bind.load_system_host_keys()
             try:
-                ssh_bind.connect(hostname=str(n), port=int(p),\
+                self.ssh_bind.connect(hostname=str(n), port=int(p),\
                                  username=str(u), password=str(pw))
             except ValueError as e:
                 raise ValueError(f"u stoopid:\n{e}")
         
-        make_bind(host_name, host_port, host_user_name, host_password)
+        _make_bind(host_name, host_port, host_user_name, host_password)
         # ssh_bind = px.spawn(f"/usr/bin/ssh {user_name}@{address} -p {str(port)})
 
     def check_connection(self):
@@ -98,7 +94,8 @@ class Remote_Interface: # extends paramiko.client.SSHClient   or just API??
 
 class alarm_daemon:
     def __init__(self, credentials):
-        remote_interface = Remote_Interface(*credentials)
+        self.remote_interface = Remote_Interface(*credentials)
+        self.alarm_buffer = list()
 
     @staticmethod
     def find_notification():
@@ -121,8 +118,8 @@ class alarm_daemon:
                  for n in notifications ] #remove all occurencys of None
 
     def collect_upcoming_alarms(self):
-        next_alarm.append(strptime(n['content'].join(''), '%a %H:%M'))
-        toast(f"alarm found: {next_alarm[-1]}")
+        self.alarm_buffer.append(strptime(n['content'].join(''), '%a %H:%M'))
+        toast(f"alarm found: {self.alarm_buffer[-1]}")
 
 
 
@@ -142,7 +139,7 @@ if __name__ == "__main__":
 
     if args.daemon:
         if args.kill:
-            kill_daemon()
+            kill_notification(NID)
         else:
             notification_switch()
             #loop???
