@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import subprocess as sp
-from paramiko import client.SHHClient
+import socket as sc
 
 import argparse
 import json
@@ -45,28 +45,16 @@ def notification_switch(): # add last updated as content
 
 
 
-    
 def kill_notification(nid):
     sp.run("termux-notification-remove", str(nid))
     
     #close the ssh connection
-    
 
-class Remote_Interface: # extends paramiko.client.SSHClient   or just API??
-    def __init__(self, host_name, host_port, host_user_name, host_password):
+
+class Remote_Interface:
+    def __init__(self, host_name, host_port):
         self.last_update = None #time.struct_time
-        
-        def _make_bind(n, p, u, pw):
-            self.ssh_bind = SSHClient()
-            self.ssh_bind.load_system_host_keys()
-            try:
-                self.ssh_bind.connect(hostname=str(n), port=int(p),\
-                                 username=str(u), password=str(pw))
-            except ValueError as e:
-                raise ValueError(f"u stoopid:\n{e}")
-        
-        _make_bind(host_name, host_port, host_user_name, host_password)
-        # ssh_bind = px.spawn(f"/usr/bin/ssh {user_name}@{address} -p {str(port)})
+        self.sbind = sc.socket(sc.AF_INET, sc.SOCK_STREAM)
 
     def check_connection(self):
         pass
@@ -77,20 +65,6 @@ class Remote_Interface: # extends paramiko.client.SSHClient   or just API??
     def get_remote_state(self):
         pass
 
-
-
-""" example notification
-{
-    "id": 13,
-    "tag": "",
-    "key": "0|com.google.android.deskclock|13|null|10161",
-    "group": "1",
-    "packageName": "com.google.android.deskclock",
-    "title": "Upcoming alarm",
-    "content": "Mon 08:00",
-    "when": "2023-01-23 07:01:21"
-}
-"""
 
 class alarm_daemon:
     def __init__(self, credentials):
@@ -105,12 +79,11 @@ class alarm_daemon:
             notifications = json.loads(str().join([str(l.decode('utf-8')\
                                                        .replace('\n', ''))\
                                                    for l in opt.stdout]))
-        nots = list()
-
-        for n in notifications:
-            if n['packageName'] == "com.google.android.deskclock"\
-               and n['title'] == "Upcoming alarm" and int(n['group']) == 1:
-                nots.append(n)
+        #nots = list()
+        #for n in notifications:
+        #    if n['packageName'] == "com.google.android.deskclock"\
+        #       and n['title'] == "Upcoming alarm" and int(n['group']) == 1:
+        #        nots.append(n)
 
         return [ n if (n['packageName'] == "com.google.android.deskclock"\
                        and n['title'] == "Upcoming alarm" and int(n['group']) ==1)\
@@ -118,6 +91,19 @@ class alarm_daemon:
                  for n in notifications ] #remove all occurencys of None
 
     def collect_upcoming_alarms(self):
+        """ example notification
+        {
+        "id": 13,
+        "tag": "",
+        "key": "0|com.google.android.deskclock|13|null|10161",
+        "group": "1",
+        "packageName": "com.google.android.deskclock",
+        "title": "Upcoming alarm",
+        "content": "Mon 08:00",
+        "when": "2023-01-23 07:01:21"
+        }
+        """
+
         self.alarm_buffer.append(strptime(n['content'].join(''), '%a %H:%M'))
         toast(f"alarm found: {self.alarm_buffer[-1]}")
 
