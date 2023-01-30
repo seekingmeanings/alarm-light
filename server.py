@@ -28,6 +28,10 @@ def set_status(desire: bool):
 #class for timed activiation
 
 
+class Timed_queue:
+    pass
+
+
 # local binding address and port
 PORT = 40753
 IP_HOST = ifaddresses("wlan0").setdefault(AF_INET, [{'addr':None}])[0]['addr']
