@@ -51,7 +51,7 @@ def kill_notification(nid):
     #close the ssh connection
 
 
-class Remote_Interface:
+class Remote_Interface:  ##always send tuple with an identifier
     def __init__(self, host_name, host_port):
         self.last_update = None #time.struct_time
         self.sbind = sc.socket(sc.AF_INET, sc.SOCK_STREAM)

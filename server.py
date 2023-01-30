@@ -12,22 +12,21 @@ from pprint import pprint as pp
 
 def test_server(addr):
         conn, addr = active_sct.accept()
+        conn.sendall(data)
 
-        with conn:
-            print(addr)
+def get_status():
+    pass
 
-            while True:
-                data = conn.recv(1024)
-                if not data:
-                    break
-                pp(data)
-                conn.sendall(data)
+def set_status(status: bool):
+    
 
+#class timed activiation
 
 
 # local binding address and port
 PORT = 40753
 IP_HOST = ifaddresses("wlan0").setdefault(AF_INET, [{'addr':None}])[0]['addr']
+IDENTS = {213: get_status, 214: set_status}
 
 
 asct = sc.socket(sc.AF_INET, sc.SOCK_STREAM)
@@ -40,7 +39,10 @@ while True:
 
     with c:
         while True:
-            d = list(c.recv(1024))
-            if not d:
+            d = tuple(c.recv(1024))
+            if not d or not:
                 break
-            elif 
+            try:
+                c.sendall(bytes(IDENTS[int(d[0])](d[:1])))
+            except IndexError as e: #not an known identifier
+                raise RuntimeError(f"non capisco nulla: {d}\n\n{e}")
