@@ -54,10 +54,25 @@ def kill_notification(nid):
 class Remote_Interface:  ##always send tuple with an identifier
     def __init__(self, host_name, host_port):
         self.last_update = None #time.struct_time
-        self.sbind = sc.socket(sc.AF_INET, sc.SOCK_STREAM)
+        self.sbind = None
+        self.u_adr = (host_name, host_port)
         IDENTS = {213: get_remote_state, 214: set_remote_state}
 
-    def set_remote_state(self, desire):
+
+    def _send(self, msg):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as self.sbind:
+            self.sbind.connect(self.u_adr)
+            self.sbind.sendall(bytes((msg)))
+            d = s.recv(1024)
+        return d
+
+    @staticmathod
+    def get_ident(func):
+        return func
+
+    @get_ident
+    def set_remote_state(self, ident, desire):
+        self._send((int(ident), desire))
         
 
     def get_remote_state(self):
