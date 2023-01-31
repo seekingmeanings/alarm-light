@@ -13,17 +13,18 @@ from local_utils import toast
 
 
 NID = 56
-WORK_DIR="/data/data/com.termux/files/home/alarm-light"
+WORK_DIR = "/data/data/com.termux/files/home/alarm-light"
 
-def check_for_upcoming_alarm(): #old
-    opt = sp.Popen("termux-notification-list", stdout=sp.PIPE)
-    opt.wait()
-    
-    notifications = json.loads(str().join([str(l.decode('utf-8').replace('\n', '')) \
-                                           for l in opt.stdout]))
-    
-    next_alarm = list()
-    
+
+def check_for_upcoming_alarm(): # old
+    with sp.Popen("termux-notification-list", stdout=sp.PIPE) as opt:
+        opt.wait()
+
+        notifications = json.loads(str().join([str(l.decode('utf-8')
+                                                   .replace('\n', ''))
+                                               for l in opt.stdout]))
+    next_alarm = []
+
     for n in notifications:
         if n['packageName'] == "com.google.android.deskclock"\
            and n['title'] == "Upcoming alarm" and int(n['group']) == 1:
@@ -31,77 +32,74 @@ def check_for_upcoming_alarm(): #old
             toast(f"alarm found: {next_alarm[-1]}")
 
 
-
 def notification_switch(): # add last updated as content
-    sp.run(["termux-notification", "-i", str(NID),\
-                    "--ongoing", "--button1", "on", "--button1-action",\
-                    f"python3 {WORK_DIR}/pre_alarm_daemon.py --on",\
-                    "--button2", "off", "--button2-action",\
-                    f"python3 {WORK_DIR}/pre_alarm_daemon.py --off",\
-                    "--button3", "kill daemon", "--button3-action",
-                    f"python3 {WORK_DIR}/pre_alarm_daemon.py -d -k",\
-                    "-t", "bed light"], check=True)
-
-
+    sp.run(["termux-notification", "-i", str(NID),
+            "--ongoing", "--button1", "on", "--button1-action",
+            f"python3 {WORK_DIR}/pre_alarm_daemon.py --on",
+            "--button2", "off", "--button2-action",
+            f"python3 {WORK_DIR}/pre_alarm_daemon.py --off",
+            "--button3", "kill daemon", "--button3-action",
+            f"python3 {WORK_DIR}/pre_alarm_daemon.py -d -k",
+            "-t", "bed light"], check=True)
 
 
 def kill_notification(nid):
     sp.run("termux-notification-remove", str(nid))
     
-    #close the ssh connection
+    # close the ssh connection
 
 
-class Remote_Interface:  ##always send tuple with an identifier
+class RemoteInterface: # always send tuple with an identifier
     def __init__(self, host_name, host_port):
-        self.last_update = None #time.struct_time
+        self.last_update = None # time.struct_time
         self.sbind = None
         self.u_adr = (host_name, host_port)
-        IDENTS = {213: get_remote_state, 214: set_remote_state}
-
+        idents = {213: self.get_remote_state,
+                  214: self.set_remote_state}
 
     def _send(self, msg):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as self.sbind:
+        with sc.socket(sc.AF_INET, sc.SOCK_STREAM) as self.sbind:
             self.sbind.connect(self.u_adr)
             self.sbind.sendall(bytes((msg)))
-            d = s.recv(1024)
-        return d
+            data = self.sbind.recv(1024)
+        return data
 
-    @staticmathod
+    @staticmethod
     def get_ident(func):
         return func
 
     @get_ident
     def set_remote_state(self, ident, desire):
         self._send((int(ident), desire))
-        
 
     def get_remote_state(self):
         pass
 
 
-class alarm_daemon:
+class AlarmDaemon:
     def __init__(self, credentials):
-        self.remote_interface = Remote_Interface(*credentials)
-        self.alarm_buffer = list()
+        self.remote_interface = RemoteInterface(*credentials)
+        self.alarm_buffer = []
 
     @staticmethod
     def find_notification():
-        with opt as sp.run(["termux-notification-list"], shell=True,\
-                           capture_output=True, timeout=5, text=True):
+        with sp.run(["termux-notification-list"], shell=True,
+                    capture_output=True, timeout=5, text=True,
+                    check=True) as opt:
 
-            notifications = json.loads(str().join([str(l.decode('utf-8')\
-                                                       .replace('\n', ''))\
+            notifications = json.loads(str().join([str(l.decode('utf-8')
+                                                       .replace('\n', ''))
                                                    for l in opt.stdout]))
-        #nots = list()
-        #for n in notifications:
+        # nots = list()
+        # for n in notifications:
         #    if n['packageName'] == "com.google.android.deskclock"\
         #       and n['title'] == "Upcoming alarm" and int(n['group']) == 1:
         #        nots.append(n)
 
-        return [ n if (n['packageName'] == "com.google.android.deskclock"\
-                       and n['title'] == "Upcoming alarm" and int(n['group']) ==1)\
-                 else None
-                 for n in notifications ] #remove all occurencys of None
+        return [n if (n['packageName'] == "com.google.android.deskclock"
+                      and n['title'] == "Upcoming alarm" and int(n['group']) == 1)
+                else None
+                for n in notifications] # remove all occurencys of None
 
     def collect_upcoming_alarms(self):
         """ example notification
@@ -121,8 +119,6 @@ class alarm_daemon:
         toast(f"alarm found: {self.alarm_buffer[-1]}")
 
 
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--daemon", action="store_true")
@@ -131,19 +127,18 @@ if __name__ == "__main__":
     parser.add_argument("-f", "--off", action="store_true") 
     parser.add_argument("-t", "--on", action="store_true")
     
-    args=parser.parse_args() 
+    args = parser.parse_args()
 
 
-    #make startup check; use groups instead of nid?
+    # make startup check; use groups instead of nid?
 
     if args.daemon:
         if args.kill:
             kill_notification(NID)
         else:
             notification_switch()
-            #loop???
+            # loop???
             check_for_upcoming_alarm()
-
 
     if args.on - args.off:
         toast("change of state: ".join(get_remote_state()))
