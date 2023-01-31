@@ -1,43 +1,40 @@
-import socket as sc
-from netifaces import interfaces, ifaddresses, AF_INET #interfaces not needed?
 import time
+import socket as sc
+from netifaces import ifaddresses, AF_INET # interfaces not needed?
 
 from aiy.pins import PIN_A
 from gpiozero import LED
 
 
-
-from pprint import pprint as pp
-
-
-def test_server(addr):
-        conn, addr = active_sct.accept()
-        conn.sendall(data)
-
 def get_status():
+    """
+    get tbe current state of the pin and return it
+    """
+    # use time
     pass
 
+
 def set_status(desire: bool):
-    if desire == True:
+    if desire:
         relay.on()
-    elif desire == False
+    elif desire is False:
         relay.off()
     else:
         raise RuntimeError
 
-#class for timed activiation
+# class for timed activiation
 
 
-class Timed_queue:
+class TimedQueue:
     pass
 
 
 # local binding address and port
 PORT = 40753
-IP_HOST = ifaddresses("wlan0").setdefault(AF_INET, [{'addr':None}])[0]['addr']
+IP_HOST = ifaddresses("wlan0").setdefault(AF_INET, [{'addr': None}])[0]['addr']
 IDENTS = {213: get_status, 214: set_status}
 
-#Relay init
+# Relay init
 relay = LED(PIN_A)
 
 
@@ -52,9 +49,9 @@ while True:
     with c:
         while True:
             d = tuple(c.recv(1024))
-            if not d or not:
+            if not d:
                 break
             try:
                 c.sendall(bytes(IDENTS[int(d[0])](*d[:1])))
-            except IndexError as e: #not an known identifier
-                raise RuntimeError(f"non capisco nulla: {d}\n\n{e}")
+            except IndexError as e: # not an known identifier
+                raise RuntimeError(f"non capisco nulla: {d}") from e
