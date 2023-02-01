@@ -7,6 +7,8 @@ import argparse
 import json
 from time import strptime
 
+from daemon import Daemon
+
 import sys
 sys.path.append('/data/data/com.termux/files/home/lib')
 from local_utils import toast
@@ -65,10 +67,10 @@ class RemoteInterface: # always send tuple with an identifier
         return data
 
     @staticmethod
-    def get_ident(func):
+    def get_ident_num(func):
         return func
 
-    @get_ident
+    @get_ident_num
     def set_remote_state(self, ident, desire):
         self._send((int(ident), desire))
 
@@ -76,20 +78,24 @@ class RemoteInterface: # always send tuple with an identifier
         pass
 
 
-class AlarmDaemon:
+class AlarmDaemon(Daemon):
     def __init__(self, credentials):
+        super().__init__()
         self.remote_interface = RemoteInterface(*credentials)
         self.alarm_buffer = []
 
+    def run(self):
+        pass
+        
     @staticmethod
     def find_notification():
         with sp.run(["termux-notification-list"], shell=True,
                     capture_output=True, timeout=5, text=True,
                     check=True) as opt:
 
-            notifications = json.loads(str().join([str(l.decode('utf-8')
-                                                       .replace('\n', ''))
-                                                   for l in opt.stdout]))
+            notifications = json.loads("".join([str(l.decode('utf-8')
+                                                    .replace('\n', ''))
+                                                for l in opt.stdout]))
         # nots = list()
         # for n in notifications:
         #    if n['packageName'] == "com.google.android.deskclock"\
@@ -128,7 +134,6 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--on", action="store_true")
     
     args = parser.parse_args()
-
 
     # make startup check; use groups instead of nid?
 
