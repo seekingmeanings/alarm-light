@@ -11,20 +11,19 @@ def get_status():
     get tbe current state of the pin and return it
     """
     # use time
-    pass
+    return relay.is_lit
 
 
 def set_status(desire: bool):
-    if desire:
+    if desire is True:
         relay.on()
     elif desire is False:
         relay.off()
     else:
         raise RuntimeError
 
+   
 # class for timed activiation
-
-
 class TimedQueue:
     pass
 
@@ -52,6 +51,7 @@ while True:
             if not d:
                 break
             try:
+                # lazy shortcut to call the right function
                 c.sendall(bytes(IDENTS[int(d[0])](*d[:1])))
             except IndexError as e: # not an known identifier
                 raise RuntimeError(f"non capisco nulla: {d}") from e
