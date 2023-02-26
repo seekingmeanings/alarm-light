@@ -1,0 +1,21 @@
+#+title: concepts of this project
+
+* client general concept:
+
+** get alarms
+*** TODO retrieve all notifications
+*** TODO search for upcoming alarms (and current alarms)
+*** TODO store the alarms in time.struct_time
+**** TODO replace unkonwn attributes with logical ones
+*** TODO compare the alarms with the current stack
+**** remove them if the notification doesnt exist anymore (only if the alarm isnt going off atm)
+**** add new ones to the stack
+
+** sync with server
+*** TODO
+
+** server connection
+
+
+
+* server side 
