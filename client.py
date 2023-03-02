@@ -84,11 +84,15 @@ class AlarmDaemon(Daemon):
         self.remote_interface = RemoteInterface(*credentials)
         self.alarm_buffer = []
 
+        NID = 56
+        alarm_flags = {"packageName": "com.google.android.deskclock",
+                        "title": "Upcoming alarm", "group": 1}
+
     def run(self):
         pass
         
     @staticmethod
-    def find_notification():
+    def find_notifications():
         with sp.run(["termux-notification-list"], shell=True,
                     capture_output=True, timeout=5, text=True,
                     check=True) as opt:
@@ -102,9 +106,8 @@ class AlarmDaemon(Daemon):
         #       and n['title'] == "Upcoming alarm" and int(n['group']) == 1:
         #        nots.append(n)
 
-        return [n if (n['packageName'] == "com.google.android.deskclock"
-                      and n['title'] == "Upcoming alarm" and int(n['group']) == 1)
-                else None
+        return [n if (flag == n[flag] for flag in self.alarm_flags)
+                #else None
                 for n in notifications] # remove all occurencys of None
 
     def collect_upcoming_alarms(self):
