@@ -75,7 +75,7 @@ class AlarmDaemon(Daemon):
         pass
 
     @classmethod
-    def find_notifications():
+    def find_notifications(cls):
         with sp.run(["termux-notification-list"], shell=True,
                     capture_output=True, timeout=5, text=True,
                     check=True) as opt:
@@ -89,8 +89,8 @@ class AlarmDaemon(Daemon):
         #       and n['title'] == "Upcoming alarm" and int(n['group']) == 1:
         #        nots.append(n)
 
-        return [n if (alarm_flags[flag] == n[flag]
-                      for flag in alarm_flags)
+        return [n if (cls.alarm_flags[flag] == n[flag]
+                      for flag in cls.alarm_flags)
                 else None
                 for n in notifications]  # remove all occurencys of None
 
@@ -108,6 +108,7 @@ class AlarmDaemon(Daemon):
         }
         """
 
+        # make it iterative
         self.alarm_buffer.append(strptime(
             alarm_notifications['content'].join(''), '%a %H:%M'))
         toast(f"alarm found: {self.alarm_buffer[-1]}")
@@ -142,7 +143,7 @@ if __name__ == "__main__":
     # make startup check; use groups instead of nid?
 
     daemon = AlarmDaemon()
-    
+
     if args.daemon:
         if args.kill:
             daemon.kill_notification(NID)
