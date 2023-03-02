@@ -106,7 +106,7 @@ class AlarmDaemon(Daemon):
         #       and n['title'] == "Upcoming alarm" and int(n['group']) == 1:
         #        nots.append(n)
 
-        return [n if (flag == n[flag] for flag in self.alarm_flags)
+        return [n if (alarm_flags[flag] == n[flag] for flag in self.alarm_flags)
                 #else None
                 for n in notifications] # remove all occurencys of None
 
