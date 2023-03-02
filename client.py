@@ -18,13 +18,13 @@ NID = 56
 WORK_DIR = "/data/data/com.termux/files/home/alarm-light"
 
 
-def check_for_upcoming_alarm(): # old
+def check_for_upcoming_alarm():  # old
     with sp.Popen("termux-notification-list", stdout=sp.PIPE) as opt:
         opt.wait()
 
-        notifications = json.loads(str().join([str(l.decode('utf-8')
+        notifications = json.loads(str().join([str(line.decode('utf-8')
                                                    .replace('\n', ''))
-                                               for l in opt.stdout]))
+                                               for line in opt.stdout]))
     next_alarm = []
 
     for n in notifications:
@@ -34,26 +34,9 @@ def check_for_upcoming_alarm(): # old
             toast(f"alarm found: {next_alarm[-1]}")
 
 
-def notification_switch(): # add last updated as content
-    sp.run(["termux-notification", "-i", str(NID),
-            "--ongoing", "--button1", "on", "--button1-action",
-            f"python3 {WORK_DIR}/pre_alarm_daemon.py --on",
-            "--button2", "off", "--button2-action",
-            f"python3 {WORK_DIR}/pre_alarm_daemon.py --off",
-            "--button3", "kill daemon", "--button3-action",
-            f"python3 {WORK_DIR}/pre_alarm_daemon.py -d -k",
-            "-t", "bed light"], check=True)
-
-
-def kill_notification(nid):
-    sp.run("termux-notification-remove", str(nid))
-    
-    # close the ssh connection
-
-
-class RemoteInterface: # always send tuple with an identifier
+class RemoteInterface:  # always send tuple with an identifier
     def __init__(self, host_name, host_port):
-        self.last_update = None # time.struct_time
+        self.last_update = None  # time.struct_time
         self.sbind = None
         self.u_adr = (host_name, host_port)
         idents = {213: self.get_remote_state,
@@ -86,31 +69,32 @@ class AlarmDaemon(Daemon):
 
         NID = 56
         alarm_flags = {"packageName": "com.google.android.deskclock",
-                        "title": "Upcoming alarm", "group": 1}
+                       "title": "Upcoming alarm", "group": 1}
 
     def run(self):
         pass
-        
-    @staticmethod
+
+    @classmethod
     def find_notifications():
         with sp.run(["termux-notification-list"], shell=True,
                     capture_output=True, timeout=5, text=True,
                     check=True) as opt:
 
-            notifications = json.loads("".join([str(l.decode('utf-8')
+            notifications = json.loads("".join([str(line.decode('utf-8')
                                                     .replace('\n', ''))
-                                                for l in opt.stdout]))
+                                                for line in opt.stdout]))
         # nots = list()
         # for n in notifications:
         #    if n['packageName'] == "com.google.android.deskclock"\
         #       and n['title'] == "Upcoming alarm" and int(n['group']) == 1:
         #        nots.append(n)
 
-        return [n if (alarm_flags[flag] == n[flag] for flag in self.alarm_flags)
-                #else None
-                for n in notifications] # remove all occurencys of None
+        return [n if (alarm_flags[flag] == n[flag]
+                      for flag in alarm_flags)
+                else None
+                for n in notifications]  # remove all occurencys of None
 
-    def collect_upcoming_alarms(self):
+    def collect_upcoming_alarms(self, alarm_notifications):
         """ example notification
         {
         "id": 13,
@@ -124,27 +108,46 @@ class AlarmDaemon(Daemon):
         }
         """
 
-        self.alarm_buffer.append(strptime(n['content'].join(''), '%a %H:%M'))
+        self.alarm_buffer.append(strptime(
+            alarm_notifications['content'].join(''), '%a %H:%M'))
         toast(f"alarm found: {self.alarm_buffer[-1]}")
+
+    @staticmethod
+    def notification_switch():  # add last updated as content
+        sp.run(["termux-notification", "-i", str(NID),
+                "--ongoing", "--button1", "on", "--button1-action",
+                f"python3 {WORK_DIR}/pre_alarm_daemon.py --on",
+                "--button2", "off", "--button2-action",
+                f"python3 {WORK_DIR}/pre_alarm_daemon.py --off",
+                "--button3", "kill daemon", "--button3-action",
+                f"python3 {WORK_DIR}/pre_alarm_daemon.py -d -k",
+                "-t", "bed light"], check=True)
+
+    @staticmethod
+    def kill_notification(nid):
+        sp.run("termux-notification-remove", str(nid))
+        # close the ssh connection
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--daemon", action="store_true")
     parser.add_argument("-k", "--kill", action="store_true")
-    
-    parser.add_argument("-f", "--off", action="store_true") 
+
+    parser.add_argument("-f", "--off", action="store_true")
     parser.add_argument("-t", "--on", action="store_true")
-    
+
     args = parser.parse_args()
 
     # make startup check; use groups instead of nid?
 
+    daemon = AlarmDaemon()
+    
     if args.daemon:
         if args.kill:
-            kill_notification(NID)
+            daemon.kill_notification(NID)
         else:
-            notification_switch()
+            daemon.notification_switch()
             # loop???
             check_for_upcoming_alarm()
 
