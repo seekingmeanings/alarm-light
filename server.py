@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import time
 import socket as sc
-from netifaces import ifaddresses, AF_INET # interfaces not needed?
+from netifaces import ifaddresses, AF_INET
 
 from aiy.pins import PIN_A
 from gpiozero import LED
@@ -14,15 +14,15 @@ class TimeHandler(Daemon):
     def __init__(self, port, interface='wlan0', listening_ip=None):
         self._port = port  # make safe randint
         super().__init__(f"{self._port}.pidfile")
-        
+
         self._listen_ip = listening_ip if listening_ip \
-            else ifaddresses(interface)\
-                 .setdefault(AF_INET,
-                             [{'addr': None}])[0]['addr']
+            else ifaddresses(
+                    interface).setdefault(
+                            AF_INET, [{'addr': None}])[0]['addr']
         self.asct = sc.socket(sc.AF_INET, sc.SOCK_STREAM)
         self._package_len = 1024
-        
-        self.relay = LED(PIN_A)    
+
+        self.relay = LED(PIN_A)
         self.queue = Queue()
 
         self.func_codes = {
@@ -33,7 +33,7 @@ class TimeHandler(Daemon):
 
     def get_codes(self) -> dict:
         return self.func_codes
-        
+
     def get_status(self):
         """
         get tbe current state of the pin and return it
@@ -60,6 +60,7 @@ class TimeHandler(Daemon):
         alorithm from:
         https://docs.python.org/3/howto/sockets.html#socket-howto
         """
+        # add time stamp - see formating of the transfer
         totalsent = 0
         while totalsent < len(data):
             sent = con.send(data[totalsent:])
@@ -78,10 +79,9 @@ class TimeHandler(Daemon):
                     try:
                         # lazy shortcut to call the right function
                         # TODO: sign function return with time
-                            
                         c.sendall(
                             bytes(
-                                transfer_codes[
+                                self.func_codes[
                                     int(rec_data[0])](
                                         *rec_data[:1])))
                     except IndexError as e: # not an known identifier
