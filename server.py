@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+
 import time
 import socket as sc
 from netifaces import ifaddresses, AF_INET
@@ -25,6 +26,7 @@ class TimeHandler(Daemon):
         self.relay = LED(PIN_A)
         self.queue = Queue()
 
+        # using this finicky method to have at least smth against injection
         self.func_codes = {
             42: self.get_codes,
             213: self.get_status,
@@ -75,20 +77,19 @@ class TimeHandler(Daemon):
             while True:
                 c, addr = self.asct.accept()
                 with c:
-                    rec_data = self._get_con_data(c) 
                     try:
-                        # lazy shortcut to call the right function
-                        # TODO: sign function return with time
-                        c.sendall(
-                            bytes(
-                                self.func_codes[
-                                    int(rec_data[0])](
-                                        *rec_data[:1])))
+                        call, *recd = self._get_con_data(c).json()
+                        rdata = self.func_codes[int(call)](recd)
+
+                        # sign return vaule with access time
+                        c.sendall(bytes(rdata) + bytes(time.gmtime()))
                     except IndexError as e: # not an known identifier
                         raise RuntimeError(
-                            f"non capisco nulla: {rec_data}") from e
+                            f"non capisco nulla: {call}") from e
 
 
 if __name__ == "__main__":
     daemon = TimeHandler(6434)
     daemon.start()
+
+    raise Not
