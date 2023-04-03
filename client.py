@@ -39,10 +39,10 @@ class RemoteInterface:  # always send tuple with an identifier
         self.last_update = None  # time.struct_time
         self.sbind = None
         self.u_adr = (host_name, host_port)
-        idents = {213: self.get_remote_state,
-                  214: self.set_remote_state}
+        self.idents = {213: self.get_remote_state,
+                       214: self.set_remote_state}
 
-    def _send(self, msg):
+    def send(self, msg):
         with sc.socket(sc.AF_INET, sc.SOCK_STREAM) as self.sbind:
             self.sbind.connect(self.u_adr)
             self.sbind.sendall(bytes((msg)))
