@@ -69,18 +69,18 @@ class AlarmList:
     AutomaticID = NewType('AutomaticID', Union[int, Alarm])
 
     def __init__(self):
-        self.alarms = {}
+        self.alst = {}
 
     def add_alarm(self, alarm: Alarm):
         if not alarm.id:
             # give him his own id
-            n = len(self.alarms)
+            n = len(self.alst)
             alarm.id = n
-            self.alarms[n] = alarm
+            self.alst[n] = alarm
         else:
-            if alarm.id in self.alarms:
+            if alarm.id in self.alst:
                 raise IndexError("can't assing id, already used")
-            self.alarms[alarm.id] = alarm
+            self.alst[alarm.id] = alarm
 
     def _use_id(func):
         def wrapper(*args, **kwargs):
@@ -100,12 +100,12 @@ class AlarmList:
 
     @_use_id
     def get_alarm(self, id: AutomaticID) -> Alarm:
-        return self.alarms[id]
+        return self.alst[id]
 
     @_use_id
     def delete_alarm(self, id: AutomaticID):
-        del self.alarms[id]
-    
+        del self.alst[id]
+
     @_use_id
     def pop_alarm(self, id: AutomaticID) -> Alarm:
         a = self.get_alarm(id)

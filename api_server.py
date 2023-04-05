@@ -7,7 +7,7 @@ from flask_restful import Api, Resource, reqparse
 #from aiy.pins import PIN_A
 #from gpiozero import LED
 
-from lib.alarm import Alarm
+from lib.alarm import Alarm, AlarmList
 from lib.daemon import Daemon
 
 import queue
@@ -53,34 +53,34 @@ class AlarmAccess(Resource):
         pargs = p.parse_args()
         if pargs.id:
             try:
-                return {pargs.id: self.alarms[pargs.id]},  200
+                return self.alarms.get_alarm(pargs.id), 200
             except IndexError:
                 return {"not found"},  404
-        return self.alarms,  200
+        return self.alarms.data, 200  # FIXME: need __repr__
 
     def post(self):
         p = reqparse.RequestParser()
         p.add_argument("time", location="args", type=int, required=True)
         pargs = p.parse_args()
 
-        # store it as struct_time
+        # store time as struct_time
 
-        # safe definition
-        n = len(self.alarms)
-        self.alarms[n] = Alarm(id=n,  time=pargs.time)
-        return
+        new_alarm = Alarm(time=pargs.time)
+        # add to list and generate id
+        self.alarms.add_alarm(new_alarm)
+        return new_alarm, 200
 
     def delete(self):
         p = reqparse.RequestParser()
         p.add_argument("id", location="args",  type=int,  required=True)
         pargs = p.parse_args()
-        del(self.alarms[pargs.id])
+        self.alarms.delete_alarm(pargs.id)
 
 
 class AlarmServer(Daemon):
     def __init__(self, host, port):
         self.queue = SafeQueue()
-        self.alarms = {}
+        self.alarms = AlarmList()
 
         self.app = Flask(__name__)
         self.api = Api(self.app)
@@ -90,8 +90,8 @@ class AlarmServer(Daemon):
         logging.info("initialized api")
 
     def run(self):
-        # start a thread
-        pass
+        # TODO: start two threads
+        self.app.run()
 
 
 if __name__ == "__main__":
@@ -104,4 +104,10 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO)
 
-    AlarmServer(pargs.host, pargs.port)
+    server = AlarmServer(pargs.host, pargs.port)
+
+    if pargs.daemon:
+        server.start()
+    else:
+        server.run()
+
