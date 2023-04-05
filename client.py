@@ -1,11 +1,10 @@
 #!/usr/bin/python3
 
 import subprocess as sp
-import socket as sc
 
 import argparse
 import json
-from time import strptime
+import time
 
 from daemon import Daemon
 
@@ -30,7 +29,7 @@ def check_for_upcoming_alarm():  # old
     for n in notifications:
         if n['packageName'] == "com.google.android.deskclock"\
            and n['title'] == "Upcoming alarm" and int(n['group']) == 1:
-            next_alarm.append(strptime(n['content'].join(''), '%a %H:%M'))
+            next_alarm.append(time.strptime(n['content'].join(''), '%a %H:%M'))
             toast(f"alarm found: {next_alarm[-1]}")
 
 

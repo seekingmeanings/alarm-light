@@ -11,38 +11,16 @@ from flask_restful import Api, Resource, reqparse
 from lib.alarm import Alarm, AlarmList
 from lib.daemon import Daemon
 
-import queue
-from threading import RLock, Thread
+from threading import Thread
+
+from lib.relay import Relay
+from lib.relay import DummyRelay
 
 import logging
 import argparse
 
 
-class SafeQueue(queue.Queue):
-    def __init__(self):
-        super().__init__()
-        self._lock = RLock()
-
-    def locked_access(f):
-        def wrapper(*args, **kwargs):
-            with args[0]._lock:
-                return super(queue.Queue,
-                             args[0]).f(*args, **kwargs)
-        return wrapper
-
-    def put(self, itm):
-        with self._lock:
-            super().put(itm)
-
-    def get(self):
-        with self._lock:
-            # weird workaround, but wfm
-            if super().empty():
-                return
-            return super().get()
-
-
-class ConfigAccess(Resource):
+class ConfigEndpoint(Resource):
     def __init__(self, config):
         super().__init__()
         self.config = config
@@ -82,7 +60,7 @@ class ConfigAccess(Resource):
         return {pargs.var: converted_val}, 200
 
 
-class AlarmAccess(Resource):
+class AlarmEndpoint(Resource):
     def __init__(self, alarms):
         super().__init__()
         self.alarms = alarms
@@ -115,9 +93,25 @@ class AlarmAccess(Resource):
 
     def delete(self):
         p = reqparse.RequestParser()
-        p.add_argument("id", location="args",  type=int,  required=True)
+        p.add_argument("id", location="args", type=int, required=True)
         pargs = p.parse_args()
         self.alarms.delete_alarm(pargs.id)
+
+
+class StateEndpoint(Resource):
+    def __init__(self, relay):
+        self.relay = relay
+
+    def get(self):
+        return {"state": self.relay.get_state()}, 200
+
+    def post(self):
+        p = reqparse.RequestParser()
+        p.add_argument("state", location="args", type=bool, required=True)
+        pargs = p.parse_args()
+
+        self.relay.set_state(pargs.state)
+        return self.get()
 
 
 class AlarmServer(Daemon):
@@ -129,6 +123,7 @@ class AlarmServer(Daemon):
     def __init__(self, host, port):
         self.config = self.Config()
         self.alarms = AlarmList()
+        self.relay = DummyRelay()
 
         # temporary store items
         self._host = host
@@ -137,10 +132,12 @@ class AlarmServer(Daemon):
         # configure api
         self.app = Flask(__name__)
         self.api = Api(self.app)
-        self.api.add_resource(AlarmAccess, "/rest/alarm",
+        self.api.add_resource(AlarmEndpoint, "/rest/alarm",
                               resource_class_kwargs={"alarms": self.alarms})
-        self.api.add_resource(ConfigAccess, "/rest/config",
+        self.api.add_resource(ConfigEndpoint, "/rest/config",
                               resource_class_kwargs={"config": self.config})
+        self.api.add_resource(StateEndpoint, "/rest/state",
+                              resource_class_kwargs={"relay": self.relay})
         logging.info("initialized api")
 
         self.api_thread_hook = Thread(target=self.start_api, daemon=True)
@@ -156,8 +153,9 @@ class AlarmServer(Daemon):
             for alarm in self.alarms.all.values():
                 if time.time() + self.config.on_before_alarm_time > alarm.time:
                     logging.info("ring, ring")
+                    self.relay.set_state(True)
+                    # alarm has been used so we can delete it
                     self.alarms.delete_alarm(alarm)
-
                     # need to start iteration again cause the array changed
                     break
             time.sleep(self.config.alarm_check_precision)
@@ -176,6 +174,8 @@ if __name__ == "__main__":
                    help="port of the server", default=5034)
     p.add_argument("--host", type=str, default="localhost", help="hostname")
     p.add_argument("-d", "--daemon", action="store_true")
+    p.add_argument("-k", "--kill", action="store_true",
+                   help="kill a running daemon")
     pargs = p.parse_args()
 
     logging.basicConfig(level=logging.DEBUG)
@@ -183,6 +183,9 @@ if __name__ == "__main__":
     server = AlarmServer(pargs.host, pargs.port)
 
     if pargs.daemon:
-        server.start()
+        if pargs.kill:
+            raise NotADirectoryError()
+        else:
+            server.start()
     else:
         server.run()
