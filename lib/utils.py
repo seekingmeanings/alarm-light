@@ -8,6 +8,7 @@ def locked(func):
 
 
 # user395760 on stackowerflow
+# https://stackoverflow.com/questions/6307761/how-to-decorate-all-functions-of-a-class-without-typing-it-over-and-over-for-eac
 def for_all_methods(decorator):
     def decorate(cls):
         for attr in cls.__dict__:
