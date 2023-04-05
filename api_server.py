@@ -16,6 +16,7 @@ from threading import RLock
 import logging
 import argparse
 
+
 class SafeQueue(queue.Queue):
     def __init__(self):
         super().__init__()
@@ -40,8 +41,6 @@ class SafeQueue(queue.Queue):
             return super().get()
 
 
-
-
 class AlarmAccess(Resource):
     def __init__(self, alarms):
         super().__init__()
@@ -49,7 +48,8 @@ class AlarmAccess(Resource):
 
     def get(self):
         p = reqparse.RequestParser()
-        p.add_argument("id",  location="args",  type=int,  required=False,  default=None)
+        p.add_argument("id", location="args", type=int,
+                       required=False, default=None)
         pargs = p.parse_args()
         if pargs.id:
             try:
@@ -60,9 +60,11 @@ class AlarmAccess(Resource):
 
     def post(self):
         p = reqparse.RequestParser()
-        p.add_argument("time",  location="args", type=int, required=True)
+        p.add_argument("time", location="args", type=int, required=True)
         pargs = p.parse_args()
-        
+
+        # store it as struct_time
+
         # safe definition
         n = len(self.alarms)
         self.alarms[n] = Alarm(id=n,  time=pargs.time)
@@ -70,7 +72,7 @@ class AlarmAccess(Resource):
 
     def delete(self):
         p = reqparse.RequestParser()
-        p.add_argument("id",  location="args",  type=int,  required=True)
+        p.add_argument("id", location="args",  type=int,  required=True)
         pargs = p.parse_args()
         del(self.alarms[pargs.id])
 
