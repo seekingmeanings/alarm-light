@@ -7,7 +7,9 @@ from flask_restful import Api, Resource, reqparse
 #from aiy.pins import PIN_A
 #from gpiozero import LED
 
+from lib.alarm import Alarm
 from lib.daemon import Daemon
+
 import queue
 from threading import RLock
 
@@ -39,20 +41,6 @@ class SafeQueue(queue.Queue):
 
 
 
-class AlarmList():
-    # do I even need this class?
-    def __init__(self):
-        self.data = {}
-
-    def add(self):
-        pass
-
-    def pop(self):
-        pass
-
-    # don't use ids
-
-
 
 class AlarmAccess(Resource):
     def __init__(self, alarms):
@@ -60,29 +48,43 @@ class AlarmAccess(Resource):
         self.alarms = alarms
 
     def get(self):
-        pass
+        p = reqparse.RequestParser()
+        p.add_argument("id",  location="args",  type=int,  required=False,  default=None)
+        pargs = p.parse_args()
+        if pargs.id:
+            try:
+                return {pargs.id: self.alarms[pargs.id]},  200
+            except IndexError:
+                return {"not found"},  404
+        return self.alarms,  200
 
     def post(self):
         p = reqparse.RequestParser()
-        p.add_argument("id" location="args", type=int)
-        p.add_argument("time" location="args", type=int, required=True)
-        sargs = p.parse_args()
+        p.add_argument("time",  location="args", type=int, required=True)
+        pargs = p.parse_args()
         
+        # safe definition
+        n = len(self.alarms)
+        self.alarms[n] = Alarm(id=n,  time=pargs.time)
+        return
 
-
-        return 
+    def delete(self):
+        p = reqparse.RequestParser()
+        p.add_argument("id",  location="args",  type=int,  required=True)
+        pargs = p.parse_args()
+        del(self.alarms[pargs.id])
 
 
 class AlarmServer(Daemon):
     def __init__(self, host, port):
         self.queue = SafeQueue()
-        self.alarms = AlarmList()
+        self.alarms = {}
 
         self.app = Flask(__name__)
         self.api = Api(self.app)
 
         self.api.add_resource(AlarmAccess, "/rest",
-                              resource_class_kwargs={"queue": self.queue})
+                              resource_class_kwargs={"alarms": self.alarms})
         logging.info("initialized api")
 
     def run(self):
