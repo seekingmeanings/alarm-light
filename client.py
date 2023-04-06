@@ -6,7 +6,7 @@ import argparse
 import json
 import time
 
-from daemon import Daemon
+from lib.daemon import Daemon
 
 import sys
 sys.path.append('/data/data/com.termux/files/home/lib')
@@ -33,48 +33,19 @@ def check_for_upcoming_alarm():  # old
             toast(f"alarm found: {next_alarm[-1]}")
 
 
-class RemoteInterface:  # always send tuple with an identifier
-    def __init__(self, host_name, host_port):
-        self.last_update = None  # time.struct_time
-        self.sbind = None
-        self.u_adr = (host_name, host_port)
-        self.idents = {213: self.get_remote_state,
-                       214: self.set_remote_state}
-
-    def send(self, msg):
-        with sc.socket(sc.AF_INET, sc.SOCK_STREAM) as self.sbind:
-            self.sbind.connect(self.u_adr)
-            self.sbind.sendall(bytes((msg)))
-            data = self.sbind.recv(1024)
-        return data
-
-    @staticmethod
-    def get_ident_num(func):
-        return func
-
-    @get_ident_num
-    def set_remote_state(self, ident, desire):
-        self._send((int(ident), desire))
-
-    def get_remote_state(self):
-        pass
-
-
 class AlarmDaemon(Daemon):
     def __init__(self, credentials):
         super().__init__()
-        self.remote_interface = RemoteInterface(*credentials)
         self.alarm_buffer = []
 
-        NID = 56
-        alarm_flags = {"packageName": "com.google.android.deskclock",
-                       "title": "Upcoming alarm", "group": 1}
+        self.NID = 56
+        self.alarm_flags = {"packageName": "com.google.android.deskclock",
+                            "title": "Upcoming alarm", "group": 1}
 
     def run(self):
         pass
 
-    @classmethod
-    def find_notifications(cls):
+    def find_notifications(self):
         with sp.run(["termux-notification-list"], shell=True,
                     capture_output=True, timeout=5, text=True,
                     check=True) as opt:
@@ -88,8 +59,8 @@ class AlarmDaemon(Daemon):
         #       and n['title'] == "Upcoming alarm" and int(n['group']) == 1:
         #        nots.append(n)
 
-        return [n if (cls.alarm_flags[flag] == n[flag]
-                      for flag in cls.alarm_flags)
+        return [n if (self.alarm_flags[flag] == n[flag]
+                      for flag in self.alarm_flags)
                 else None
                 for n in notifications]  # remove all occurencys of None
 
@@ -108,7 +79,7 @@ class AlarmDaemon(Daemon):
         """
 
         # make it iterative
-        self.alarm_buffer.append(strptime(
+        self.alarm_buffer.append(time.strptime(
             alarm_notifications['content'].join(''), '%a %H:%M'))
         toast(f"alarm found: {self.alarm_buffer[-1]}")
 
@@ -126,7 +97,7 @@ class AlarmDaemon(Daemon):
     @staticmethod
     def kill_notification(nid):
         sp.run("termux-notification-remove", str(nid))
-        # close the ssh connection
+        # kill the daemon
 
 
 if __name__ == "__main__":

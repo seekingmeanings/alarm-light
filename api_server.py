@@ -120,10 +120,12 @@ class AlarmServer(Daemon):
         on_before_alarm_time = 1800
         alarm_check_precision = 2
 
-    def __init__(self, host, port):
+    def __init__(self, host: str, port: int, dummy_relay=False):
         self.config = self.Config()
         self.alarms = AlarmList()
-        self.relay = DummyRelay()
+
+        # FIXME: call contstructor with arguments
+        self.relay = DummyRelay() if dummy_relay else Relay()
 
         # temporary store items
         self._host = host
@@ -160,6 +162,9 @@ class AlarmServer(Daemon):
                     break
             time.sleep(self.config.alarm_check_precision)
 
+    def button_thread(self):
+        pass
+
     def run(self):
         self.api_thread_hook.start()
         self.led_thread_hook.start()
@@ -176,11 +181,13 @@ if __name__ == "__main__":
     p.add_argument("-d", "--daemon", action="store_true")
     p.add_argument("-k", "--kill", action="store_true",
                    help="kill a running daemon")
+    p.add_argument("--dummy", action="store_true",
+                   help="uses a dummy relay for testing")
     pargs = p.parse_args()
 
     logging.basicConfig(level=logging.DEBUG)
 
-    server = AlarmServer(pargs.host, pargs.port)
+    server = AlarmServer(pargs.host, pargs.port, pargs.dummy)
 
     if pargs.daemon:
         if pargs.kill:
