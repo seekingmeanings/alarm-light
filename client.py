@@ -48,7 +48,7 @@ class AlarmDaemon(Daemon):
                     "-t", "bed light", '-c', str(status)],
                    check=True)
 
-    def __init__(self, credentials):
+    def __init__(self):  # , credentials):
         super().__init__()  # pidfile needed here
         self.alarm_buffer = []
 
