@@ -30,11 +30,29 @@ def check_for_upcoming_alarm():  # old
 
 
 class AlarmDaemon(Daemon):
+    class Notification:
+        def __init__(self, nid):
+            self.nid = nid
+
+        def kill(self):
+            sp.run(["termux-notification-remove", str(self.nid)], check=True)
+
+        def update(self, status: str):
+            sp.run(["termux-notification", "-i", str(self.nid),
+                    "--ongoing", "--button1", "on", "--button1-action",
+                    f"python3 {WORK_DIR}/pre_alarm_daemon.py --on",
+                    "--button2", "off", "--button2-action",
+                    f"python3 {WORK_DIR}/pre_alarm_daemon.py --off",
+                    "--button3", "kill daemon", "--button3-action",
+                    f"python3 {WORK_DIR}/pre_alarm_daemon.py -d -k",
+                    "-t", "bed light", '-c', str(status)],
+                   check=True)
+
     def __init__(self, credentials):
-        super().__init__()
+        super().__init__()  # pidfile needed here
         self.alarm_buffer = []
 
-        self.nid = 56
+        self.notification = self.Notification(98)
         self.alarm_flags = {"packageName": "com.google.android.deskclock",
                             "title": "Upcoming alarm", "group": 1}
 
@@ -44,18 +62,16 @@ class AlarmDaemon(Daemon):
     def stop(self):
         super().stop()
 
-    def find_notifications(self):
-        with sp.run(["termux-notification-list"], shell=True,
-                    capture_output=True, timeout=5, text=True,
-                    check=True) as opt:
-
-            notifications = json.loads("".join(
-                [str(line.decode('utf-8').replace('\n', ''))
-                 for line in opt.stdout]))
-
-        return [n if all(self.alarm_flags[flag] == n[flag]
-                         for flag in self.alarm_flags)
-                else None for n in notifications]
+    def get_alarms(self):
+        with sp.run.run(["termux-notification-list"], shell=True,
+                        capture_output=True, timeout=10, text=True,
+                        check=True) as opt:
+            return [time.strptime(n['content'].join(''), '%a %H:%M')
+                    for n in json.loads("".join(
+                        [str(line.decode('utf-8').replace('\n', ''))
+                         for line in opt.stdou]))
+                    if all(self.alarm_flags[flag] == n[flag]
+                           for flag in self.alarm_flagsr)]
 
     def collect_upcoming_alarms(self, alarm_notifications):
         """ example notification
@@ -86,10 +102,6 @@ class AlarmDaemon(Daemon):
                 f"python3 {WORK_DIR}/pre_alarm_daemon.py -d -k",
                 "-t", "bed light"], check=True)
 
-    def kill_notification(self):
-        sp.run("termux-notification-remove", str(self.nid))
-        # kill the daemon
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -103,13 +115,13 @@ if __name__ == "__main__":
 
     daemon = AlarmDaemon()
 
+    # need a parse function
+
     if args.daemon:
         if args.kill:
             daemon.stop()
-        else:
-            daemon.notification_switch()
-            # loop???
-            check_for_upcoming_alarm()
+        daemon.start()
 
-    if args.on - args.off:
-        toast("change of state: ".join(get_remote_state()))
+    else:
+        # parse args
+        pass
